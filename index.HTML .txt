@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Health Dashboard - สรุปสุขภาพ 7 วัน</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #f4f7fe;
+            --card-bg: #ffffff;
+            --text-primary: #2b3674;
+            --text-secondary: #a3edda;
+            --text-muted: #707ebe;
+            --accent-blue: #4318ff;
+            --accent-cyan: #00b5d8;
+            --accent-green: #05cd99;
+            --accent-orange: #ffb547;
+            --border-radius: 16px;
+            --shadow: 0px 18px 40px rgba(112, 144, 176, 0.12);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Sarabun', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            padding: 24px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            margin-bottom: 24px;
+        }
+
+        header h1 {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        header p {
+            font-size: 14px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        /* KPI Cards Grid */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .kpi-card {
+            background: var(--card-bg);
+            border-radius: var(--border-radius);
+            padding: 20px;
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .kpi-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+        }
+
+        .kpi-info h3 {
+            font-size: 13px;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .kpi-info .value {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-top: 2px;
+        }
+
+        .kpi-info .unit {
+            font-size: 12px;
+            color: var(--text-muted);
+            font-weight: 400;
+        }
+
+        /* Main Content Grid */
+        .content-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 24px;
+        }
+
+        @media (max-width: 900px) {
+            .content-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--border-radius);
+            padding: 24px;
+            box-shadow: var(--shadow);
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* Chart */
+        .chart-container {
+            position: relative;
+            height: 320px;
+            width: 100%;
+        }
+
+        /* Daily Activities List */
+        .activity-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .activity-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 14px;
+            border-radius: 12px;
+            background: #f8fafc;
+            transition: background 0.2s;
+        }
+
+        .activity-item:hover {
+            background: #f1f5f9;
+        }
+
+        .activity-date {
+            display: flex;
+            flex-direction: column;
+            min-width: 85px;
+        }
+
+        .activity-date .day {
+            font-weight: 700;
+            font-size: 14px;
+        }
+
+        .activity-date .date {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .activity-details {
+            flex-grow: 1;
+            padding: 0 12px;
+        }
+
+        .activity-name {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .activity-metrics {
+            font-size: 12px;
+            color: var(--text-muted);
+            display: flex;
+            gap: 12px;
+            margin-top: 2px;
+        }
+
+        .badge {
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .badge-workout { background: #eef2ff; color: #4318ff; }
+        .badge-rest { background: #f1f5f9; color: #64748b; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>สรุปสุขภาพประจำสัปดาห์</h1>
+        <p>ข้อมูลย้อนหลัง 7 วัน (7 ก.ย. - 13 ก.ย.) | น้ำหนักตัว 55 กก.</p>
+    </header>
+
+    <!-- KPI Summary Cards -->
+    <div class="kpi-grid">
+        <div class="kpi-card">
+            <div class="kpi-icon" style="background: #eef2ff; color: #4318ff;">🏃</div>
+            <div class="kpi-info">
+                <h3>วันออกกำลังกาย</h3>
+                <div class="value">5 <span class="unit">/ 7 วัน</span></div>
+            </div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-icon" style="background: #e6faf5; color: #05cd99;">⏱️</div>
+            <div class="kpi-info">
+                <h3>เวลารวมออกกำลัง</h3>
+                <div class="value">175 <span class="unit">นาที</span></div>
+            </div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-icon" style="background: #fff8e6; color: #ffb547;">🌙</div>
+            <div class="kpi-info">
+                <h3>นอนหลับเฉลี่ย</h3>
+                <div class="value">7.2 <span class="unit">ชม./วัน</span></div>
+            </div>
+        </div>
+        <div class="kpi-card">
+            <div class="kpi-icon" style="background: #e6f7ff; color: #00b5d8;">💧</div>
+            <div class="kpi-info">
+                <h3>ดื่มน้ำเฉลี่ย</h3>
+                <div class="value">1.5 <span class="unit">ลิตร/วัน</span></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="content-grid">
+        <!-- Chart Area -->
+        <div class="card">
+            <div class="card-title">
+                <span>แนวโน้มการนอนหลับและการดื่มน้ำ</span>
+            </div>
+            <div class="chart-container">
+                <canvas id="healthChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Daily Activity List -->
+        <div class="card">
+            <div class="card-title">
+                <span>บันทึกกิจกรรมรายวัน</span>
+            </div>
+            <div class="activity-list">
+                <div class="activity-item">
+                    <div class="activity-date">
+                        <span class="day">จันทร์</span>
+                        <span class="date">7 ก.ย.</span>
+                    </div>
+                    <div class="activity-details">
+                        <div class="activity-name">วิ่ง 30 นาที</div>
+                        <div class="activity-metrics">
+                            <span>🌙 7.2 ชม.</span>
+                            <span>💧 1.8 ล.</span>
+                        </div>
+                    </div>
+                    <span class="badge badge-workout">ออกกำลัง</span>
+                </div>
+
+                <div class="activity-item">
+                    <div class="activity-date">
+                        <span class="day">อังคาร</span>
+                        <span class="date">8 ก.ย.</span>
+                    </div>
+                    <div class="activity-details">
+                        <div class="activity-name">ปั่นจักรยาน 45 นาที</div>
+                        <div class="activity-metrics">
+                            <span>🌙 6.5 ชม.</span>
+                            <span>💧 1.5 ล.</span>
+                        </div>
+                    </div>
+                    <span class="badge badge-workout">ออกกำลัง</span>
+                </div>
+
+                <div class="activity-item">
+                    <div class="activity-date">
+                        <span class="day">พุธ</span>
+                        <span class="date">9 ก.ย.</span>
+                    </div>
+                    <div class="activity-details">
+                        <div class="activity-name">พักผ่อน</div>
+                        <div class="activity-metrics">
+                            <span>🌙 7.2 ชม.</span>
+                            <span>💧 1.8 ล.</span>
+                        </div>
+                    </div>
+                    <span class="badge badge-rest">วันพัก</span>
+                </div>
+
+                <div class="activity-item">
+                    <div class="activity-date">
+                        <span class="day">พฤหัสบดี</span>
+                        <span class="date">10 ก.ย.</span>
+                    </div>
+                    <div class="activity-details">
+                        <div class="activity-name">วิ่ง 40 นาที</div>
+                        <div class="activity-metrics">
+                            <span>🌙 7.2 ชม.</span>
+                            <span>💧 2.0 ล.</span>
+                        </div>
+                    </div>
+                    <span class="badge badge-workout">ออกกำลัง</span>
+                </div>
+
+                <div class="activity-item">
+                    <div class="activity-date">
+                        <span class="day">ศุกร์</span>
+                        <span class="date">11 ก.ย.</span>
+                    </div>
+                    <div class="activity-details">
+                        <div class="activity-name">วิ่ง 20 นาที</div>
+                        <div class="activity-metrics">
+                            <span>🌙 8.0 ชม.</span>
+                            <span>💧 1.2 ล.</span>
+                        </div>
+                    </div>
+                    <span class="badge badge-workout">ออกกำลัง</span>
+                </div>
+
+                <div class="activity-item">
+                    <div class="activity-date">
+                        <span class="day">เสาร์</span>
+                        <span class="date">12 ก.ย.</span>
+                    </div>
+                    <div class="activity-details">
+                        <div class="activity-name">วิ่ง 40 นาที</div>
+                        <div class="activity-metrics">
+                            <span>🌙 7.2 ชม.</span>
+                            <span>💧 2.0 ล.</span>
+                        </div>
+                    </div>
+                    <span class="badge badge-workout">ออกกำลัง</span>
+                </div>
+
+                <div class="activity-item">
+                    <div class="activity-date">
+                        <span class="day">อาทิตย์</span>
+                        <span class="date">13 ก.ย.</span>
+                    </div>
+                    <div class="activity-details">
+                        <div class="activity-name">พักผ่อน</div>
+                        <div class="activity-metrics">
+                            <span>🌙 7.2 ชม.</span>
+                            <span>💧 1.0 ล.</span>
+                        </div>
+                    </div>
+                    <span class="badge badge-rest">วันพัก</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const ctx = document.getElementById('healthChart').getContext('2d');
+        
+        const labels = ['7 ก.ย. (จ)', '8 ก.ย. (อ)', '9 ก.ย. (พ)', '10 ก.ย. (พฤ)', '11 ก.ย. (ศ)', '12 ก.ย. (ส)', '13 ก.ย. (อา)'];
+        const sleepData = [7.2, 6.5, 7.2, 7.2, 8.0, 7.2, 7.2];
+        const waterData = [1.8, 1.5, 1.8, 2.0, 1.2, 2.0, 1.0];
+
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'ปริมาณน้ำ (ลิตร)',
+                        data: waterData,
+                        backgroundColor: 'rgba(0, 181, 216, 0.4)',
+                        borderColor: '#00b5d8',
+                        borderWidth: 2,
+                        borderRadius: 6,
+                        yAxisID: 'yWater',
+                        order: 2
+                    },
+                    {
+                        label: 'การนอนหลับ (ชั่วโมง)',
+                        data: sleepData,
+                        type: 'line',
+                        borderColor: '#ffb547',
+                        backgroundColor: '#ffb547',
+                        borderWidth: 3,
+                        pointBackgroundColor: '#ffb547',
+                        pointRadius: 5,
+                        tension: 0.3,
+                        yAxisID: 'ySleep',
+                        order: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            font: { family: 'Sarabun', size: 12 },
+                            usePointStyle: true
+                        }
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { display: false },
+                        ticks: { font: { family: 'Sarabun', size: 11 } }
+                    },
+                    ySleep: {
+                        type: 'linear',
+                        position: 'left',
+                        title: {
+                            display: true,
+                            text: 'ชั่วโมงการนอน (ชม.)',
+                            font: { family: 'Sarabun', size: 11 }
+                        },
+                        min: 4,
+                        max: 10,
+                        grid: { borderDash: [4, 4] }
+                    },
+                    yWater: {
+                        type: 'linear',
+                        position: 'right',
+                        title: {
+                            display: true,
+                            text: 'ปริมาณน้ำ (ลิตร)',
+                            font: { family: 'Sarabun', size: 11 }
+                        },
+                        min: 0,
+                        max: 3,
+                        grid: { display: false }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
